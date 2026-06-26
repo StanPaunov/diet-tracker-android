@@ -1,0 +1,46 @@
+name: Build and upload APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/release-apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  upload-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android platform
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Build debug APK
+        run: gradle assembleDebug
+
+      - name: Rename APK
+        run: cp app/build/outputs/apk/debug/app-debug.apk DietTrackerAndroid-v1.0-debug.apk
+
+      - name: Upload APK to release v1.0
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload v1.0 DietTrackerAndroid-v1.0-debug.apk --repo StanPaunov/diet-tracker-android --clobber
